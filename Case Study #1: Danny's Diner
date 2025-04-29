@@ -1,5 +1,5 @@
-```sql 
+```sql --
 SELECT *
 FROM student_info
 WHERE studenbt_name = ' Katie ';
-```
+``` --
