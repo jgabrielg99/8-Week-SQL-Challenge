@@ -206,8 +206,34 @@ ORDER BY customer_id
 [View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/3417#)
 
 **Question 6: What was the maximum number of pizzas delivered in a single order?**
+```sql
+    SELECT 
+    	c.order_id,
+        COUNT(c.pizza_id) AS order_count
+    FROM customer_orders c
+    JOIN runner_orders r
+    	ON c.order_id = r.order_id
+    WHERE r.distance IS NOT NULL
+    GROUP BY c.order_id
+    ORDER BY order_count DESC
+```
+---
+
+[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
 #### Steps:
 #### Solution:
+| order_id | order_count |
+| -------- | ----------- |
+| 4        | 3           |
+| 3        | 2           |
+| 10       | 2           |
+| 1        | 1           |
+| 7        | 1           |
+| 8        | 1           |
+| 9        | 1           |
+| 6        | 1           |
+| 2        | 1           |
+| 5        | 1           |
 
 **Question 7: For each customer, how many delivered pizzas had at least 1 change and how many how no changes?**
 #### Steps:
