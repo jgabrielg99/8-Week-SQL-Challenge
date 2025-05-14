@@ -26,7 +26,7 @@ Danny prepared an entity relationship diagram of his database design but require
 
 #### Steps:
 * Create a temporary table copy of the `customer_order` table
-* Remove null values and replace with a blank space ' '.
+* Remove null values and replace with an empty string ''.
 ```sql
 CREATE TEMP TABLE customer_orders_temp AS
 SELECT
@@ -34,11 +34,11 @@ SELECT
   customer_id,
   pizza_id,
   CASE
-    WHEN exclusions IS NULL OR exclusions LIKE 'null' THEN ' '
+    WHEN exclusions IS NULL OR exclusions LIKE 'null' THEN ''
     ELSE exclusions
     END AS exclusions,
   CASE
-    WHEN extras IS NULL OR extras LIKE 'null' THEN ' '
+    WHEN extras IS NULL OR extras LIKE 'null' THEN ''
     ELSE extras
     END AS extras,
   order_time
@@ -57,36 +57,36 @@ The new `customer_orders_temp` table looks like this
 
 #### Steps: 
 * Create a temporary table copy of the `runner_orders` table
-* In the `pickup_time` column, remove null values and replace with a blank space ' '
-* In the `distance`, remove 'km' and null values and replace a blank space ' '
-* In the `duration`, remove 'minutes', 'minute', 'mins' and null values and replace a blank space ' '
-* In the `cancellation`, remove null values and replace a blank space ' '
+* In the `pickup_time` column, remove null values and replace with a empty string ''
+* In the `distance`, remove 'km' and null values and replace a empty string ''
+* In the `duration`, remove 'minutes', 'minute', 'mins' and null values and replace a empty string ''
+* In the `cancellation`, remove null values and replace a empty string ''
 
 ```sql
 CREATE TEMP TABLE runner_orders_temp AS 
 SELECT 
-	order_id,
-    runner_id,
-    CASE
-    	WHEN pickup_time LIKE 'null' THEN ' '
-        ELSE pickup_time
-     END AS pickup_time,
-     CASE 
-     	WHEN distance LIKE 'null' THEN ' '
-        WHEN distance LIKE '%km' THEN TRIM('km' FROM distance)
-        ELSE distance
-     END AS distance,
-     CASE
-     	WHEN duration LIKE 'null' THEN ' '
-        WHEN duration LIKE '%minutes' THEN TRIM('minutes' FROM duration)
-        WHEN duration LIKE '%minute' THEN TRIM('minute' FROM duration)
-        WHEN duration LIKE '$mins' THEN TRIM('mins' FROM duration)
-        ELSE duration
-      END AS duration,
-      CASE
-      	WHEN cancellation IS NULL OR cancellation LIKE 'null' THEN ' '
-        ELSE cancellation
-       END AS cancellation
+  order_id,
+  runner_id,
+  CASE
+    WHEN pickup_time LIKE 'null' THEN ''
+    ELSE pickup_time
+  END AS pickup_time,
+  CASE 
+    WHEN distance LIKE 'null' THEN ''
+    WHEN distance LIKE '%km' THEN TRIM('km' FROM distance)
+    ELSE distance
+  END AS distance,
+  CASE
+    WHEN duration LIKE 'null' THEN ''
+    WHEN duration LIKE '%minutes' THEN TRIM('minutes' FROM duration)
+    WHEN duration LIKE '%minute' THEN TRIM('minute' FROM duration)
+    WHEN duration LIKE '$mins' THEN TRIM('mins' FROM duration)
+    ELSE duration
+  END AS duration,
+  CASE
+    WHEN cancellation IS NULL OR cancellation LIKE 'null' THEN ''
+    ELSE cancellation
+  END AS cancellation
 FROM runner_orders
 ```
 
@@ -96,7 +96,7 @@ FROM runner_orders
 **Question 1: How many pizzas were ordered?**
 ```sql
 SELECT 
-	COUNT(*) AS order_count
+  COUNT(*) AS order_count
 FROM customer_orders_temp
 ```
 #### Steps:
@@ -113,7 +113,7 @@ FROM customer_orders_temp
 **Question 2: How many unique customer orders were made**
 ```sql
 SELECT 
-	COUNT(DISTINCT customer_id) as unique_customers
+  COUNT(DISTINCT customer_id) as unique_customers
 FROM customer_orders_temp
 ```
 #### Steps:
@@ -130,8 +130,8 @@ FROM customer_orders_temp
 **Question 3: How many successful orders were delivered by each runner?**
 ```sql
 SELECT
-	runner_id,
-	COUNT(*) 
+  runner_id,
+  COUNT(*) 
 FROM runner_orders_temp
 WHERE cancellation NOT LIKE '%Cancellation'
 GROUP BY runner_id
@@ -153,14 +153,14 @@ ORDER BY runner_id
 **Question 4: How many of each type of pizza was delivered?**
 ```sql
 SELECT 
-	p.pizza_name,
-    COUNT(c.*)
+  p.pizza_name,
+  COUNT(c.*)
 FROM customer_orders_temp c
 JOIN pizza_names p
-	ON c.pizza_id = p.pizza_id
+  ON c.pizza_id = p.pizza_id
 JOIN runner_orders_temp r
-	ON c.order_id = r.order_id
- WHERE cancellation NOT LIKE '%Cancellation'
+  ON c.order_id = r.order_id
+WHERE cancellation NOT LIKE '%Cancellation'
 GROUP BY p.pizza_name
 ```
 #### Steps:
@@ -207,15 +207,15 @@ ORDER BY customer_id
 
 **Question 6: What was the maximum number of pizzas delivered in a single order?**
 ```sql
-    SELECT 
-    	c.order_id,
-        COUNT(c.pizza_id) AS order_count
-    FROM customer_orders c
-    JOIN runner_orders r
-    	ON c.order_id = r.order_id
-    WHERE r.distance IS NOT NULL
-    GROUP BY c.order_id
-    ORDER BY order_count DESC
+SELECT 
+  c.order_id,
+  COUNT(c.pizza_id) AS order_count
+FROM customer_orders c
+JOIN runner_orders r
+  ON c.order_id = r.order_id
+WHERE r.distance IS NOT NULL
+GROUP BY c.order_id
+ORDER BY order_count DESC
 ```
 ---
 
@@ -236,20 +236,110 @@ ORDER BY customer_id
 | 5        | 1           |
 
 **Question 7: For each customer, how many delivered pizzas had at least 1 change and how many how no changes?**
+```sql
+SELECT 
+  c.customer_id,
+  SUM(
+    CASE WHEN COALESCE(c.exclusions, '') <> '' OR COALESCE(c.extras, '') <> '' THEN 1
+    ELSE 0
+  END) AS with_changes,
+  SUM(
+    CASE WHEN COALESCE(c.exclusions, '') = '' AND COALESCE(c.extras, '') = '' THEN 1
+    ELSE 0
+  END) AS no_change
+FROM customer_orders_temp AS c
+JOIN runner_orders_temp AS r
+  ON c.order_id = r.order_id
+WHERE r.cancellation NOT LIKE '%Cancellation'
+GROUP BY c.customer_id
+ORDER BY c.customer_id;
+```
 #### Steps:
 #### Solution:
+| customer_id | with_changes | no_change |
+| ----------- | ------------ | --------- |
+| 101         | 0            | 2         |
+| 102         | 0            | 3         |
+| 103         | 3            | 0         |
+| 104         | 2            | 1         |
+| 105         | 1            | 0         |
+
+---
+
+[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
 
 **Question 8: How many pizzas were delivered that had both exclusions and extras?**
+```sql
+SELECT 
+  c.customer_id,
+  SUM(
+    CASE WHEN COALESCE(c.exclusions, '') <> '' AND COALESCE(c.extras, '') <> '' THEN 1
+    ELSE 0
+  END) AS with_exclusions_extras
+FROM customer_orders_temp c
+JOIN runner_orders_temp r
+  ON c.order_id = r.order_id
+WHERE r.cancellation NOT LIKE '%Cancellation'
+  AND c.exclusions <> ''
+  AND c.extras <> ''
+GROUP BY c.customer_id
+```
 #### Steps:
 #### Solution:
+| customer_id | with_exclusions_extras |
+| ----------- | ---------------------- |
+| 104         | 1                      |
+
+---
+
+[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
 
 **Question 9: What was the total volume of pizzas ordered for each hour of the day?**
+```sql
+SELECT
+  EXTRACT(HOUR FROM order_time) as hour,
+  COUNT(order_id)
+FROM customer_orders_temp
+GROUP BY hour
+ORDER BY hour
+```
+
 #### Steps:
 #### Solution:
+| hour | count |
+| ---- | ----- |
+| 11   | 1     |
+| 13   | 3     |
+| 18   | 3     |
+| 19   | 1     |
+| 21   | 3     |
+| 23   | 3     |
+
+---
+
+[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
 
 **Question 10: What was the volume of orders for each day of the week?**
+```sql
+SELECT 
+  TO_CHAR(order_time, 'Day') AS day_of_week,
+  COUNT(order_id) AS total_pizzas_ordered
+FROM customer_orders_temp
+GROUP BY TO_CHAR(order_time, 'Day')
+ORDER BY MIN(EXTRACT(DOW FROM order_time))
+```
 #### Steps:
 #### Solution:
+| day_of_week | total_pizzas_ordered |
+| ----------- | -------------------- |
+| Wednesday   | 5                    |
+| Thursday    | 3                    |
+| Friday      | 1                    |
+| Saturday    | 5                    |
+
+---
+
+[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
 
 
 
