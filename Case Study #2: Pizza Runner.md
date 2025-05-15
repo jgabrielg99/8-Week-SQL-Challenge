@@ -341,105 +341,8 @@ ORDER BY MIN(EXTRACT(DOW FROM order_time))
 
 [View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
 
-## B. Runner and Customer Experience
 
-**Question 1: How many runners signed up for each 1 week period? (i.e. week starts 2020-01-01)**
-```sql
-    SELECT 
-    	EXTRACT(WEEK FROM registration_date) as week,
-        COUNT(runner_id)
-    FROM runners
-    GROUP BY week
-    ORDER BY week
-```
-#### Steps:
-#### Solution:
-| week | count |
-| ---- | ----- |
-| 1    | 2     |
-| 2    | 1     |
-| 3    | 1     |
-
----
-
-[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
-
-**Question 2: What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?**
-```sql
-    SELECT
-    	r.runner_id,
-       	AVG(EXTRACT(EPOCH FROM (CAST(r.pickup_time AS TIMESTAMP) - c.order_time)) / 60) as avg_pickup_minutes
-    FROM customer_orders_temp c
-    JOIN runner_orders_temp r
-    	ON c.order_id = r.order_id
-    WHERE r.cancellation NOT LIKE '%Cancellation'
-    GROUP BY r.runner_id
-    ORDER BY r.runner_id
-```
-#### Steps:
-#### Solution:
-| runner_id | avg_pickup_minutes |
-| --------- | ------------------ |
-| 1         | 15.677777777777777 |
-| 2         | 23.720000000000002 |
-| 3         | 10.466666666666667 |
-
----
-
-[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
-
-**Question 3: Is there any relationship between the number of pizzas and how long the order takes to prepare?**
-```sql
-    WITH prep_time_cte AS(
-      SELECT
-          c.order_id,
-      		COUNT(c.order_id) as pizza_count,
-          EXTRACT(EPOCH FROM(CAST(r.pickup_time AS TIMESTAMP) - c.order_time))/60 as prep_time
-      FROM customer_orders_temp c
-      JOIN runner_orders_temp r
-          ON c.order_id = r.order_id
-      WHERE r.cancellation NOT LIKE '%Cancellation'
-      GROUP BY c.order_id, r.pickup_time, c.order_time
-      ORDER BY c.order_id
-      )
-      
-    SELECT
-    	pizza_count,
-        AVG(prep_time) AS avg_prep_time
-    FROM prep_time_cte
-    WHERE prep_time > 1
-    GROUP BY pizza_count
-```
-#### Steps:
-#### Solution:
-| pizza_count | avg_prep_time      |
-| ----------- | ------------------ |
-| 3           | 29.283333333333335 |
-| 2           | 18.375             |
-| 1           | 12.356666666666666 |
-
----
-
-[View on DB Fiddle](https://www.db-fiddle.com/f/7VcQKQwsS3CTkGRFG7vu98/65)
-
-**Question 4: What was the average distance travelled for each customer?**
-
-#### Steps:
-#### Solution:
-
-**Question 5: What was the difference between the longest and shortest delivery times for all orders?**
-#### Steps:
-#### Solution:
-
-**Question 6: What was the average speed for each runner for each delivery and do you notice any trend for these values?**
-#### Steps:
-#### Solution:
-
-**Question 7: What is the successful delivery percentage for each runner?**
-#### Steps:
-#### Solution:
-
-## C. Ingredient Optimization
+## B. Ingredient Optimization
 
 **Question 1: What are the standard ingredients for each pizza?**
 #### Steps:
@@ -470,7 +373,7 @@ ORDER BY MIN(EXTRACT(DOW FROM order_time))
 #### Steps:
 #### Solution:
 
-## D. Pricing and Ratings
+## C. Pricing and Ratings
 
 **Question 1: If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?**
 #### Steps:
