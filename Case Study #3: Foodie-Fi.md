@@ -156,6 +156,9 @@ WHERE s.plan_id = 4 -- Churned plan_id is 4
 ```
 #### Steps:
 #### Solution:
+| churned_count | churn_percent |
+| ------------- | ------------- |
+| 307           | 30.7          |
 
 **Question 5: How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?**
 #### Steps:
