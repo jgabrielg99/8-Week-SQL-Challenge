@@ -79,18 +79,81 @@ Customer 19: After Customer 19's `trial` period which began on June 22, 2020, th
 
 ## B. Data Analysis Questions:
 **Question 1: How many customers has Foodie-Fi ever had?**
+```sql
+SELECT
+	COUNT(DISTINCT customer_id)
+FROM subscriptions
+```
 #### Steps:
 #### Solution:
+| count |
+| ----- |
+| 1000  |
 
 **Question 2: What is the monthly distribution of `trial` plan `start_date` values for our dataset? Use the start of the month as the group by value**
+```sql
+SELECT
+	DATE_PART('month', start_date) AS month_date,
+	COUNT(s.customer_id) as customer_count
+FROM subscriptions s
+JOIN plans p
+	ON s.plan_id = p.plan_id
+WHERE s.plan_id = 0 -- Trial plan_id is 0
+GROUP BY DATE_PART('month', start_date)
+ORDER BY month_date
+```
 #### Steps:
 #### Solution:
+| month_date | customer_count |
+| ---------- | -------------- |
+| 1          | 88             |
+| 2          | 68             |
+| 3          | 94             |
+| 4          | 81             |
+| 5          | 88             |
+| 6          | 79             |
+| 7          | 89             |
+| 8          | 88             |
+| 9          | 87             |
+| 10         | 79             |
+| 11         | 75             |
+| 12         | 84             |
 
 **Question 3: What plan `start_date` values occur after the year 2020 for our dataset? Show the breakdown by count of events for each `plan_name`.**
+```sql
+SELECT
+	p.plan_id,
+	p.plan_name,
+	COUNT(s.customer_id)
+FROM subscriptions s
+JOIN plans p
+	ON s.plan_id = p.plan_id
+WHERE s.start_date > '2020-12-31'
+GROUP BY p.plan_name, p.plan_id
+ORDER BY p.plan_id
+```
 #### Steps:
 #### Solution:
+| plan_id | plan_name     | count |
+| ------- | ------------- | ----- |
+| 1       | basic monthly | 8     |
+| 2       | pro monthly   | 60    |
+| 3       | pro annual    | 63    |
+| 4       | churn         | 71    |
+
+---
+
+[View on DB Fiddle](https://www.db-fiddle.com/f/rHJhRrXy5hbVBNJ6F6b9gJ/16)
 
 **Question 4: What is the customer count and percentage of customers who have churned rounded to 1 decimal place?**
+```sql
+SELECT 
+	COUNT(s.customer_id) AS churned_count,
+    ROUND(100.0 * COUNT(s.customer_id)/
+          (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 1) AS churn_percent
+FROM subscriptions s
+WHERE s.plan_id = 4 -- Churned plan_id is 4
+```
 #### Steps:
 #### Solution:
 
