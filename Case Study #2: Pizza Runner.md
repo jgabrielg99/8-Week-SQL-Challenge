@@ -345,10 +345,26 @@ ORDER BY MIN(EXTRACT(DOW FROM order_time))
 ## B. Ingredient Optimization
 
 **Question 1: What are the standard ingredients for each pizza?**
+```sql
+SELECT
+  pn.pizza_name,
+  STRING_AGG(pt.topping_name, ', ' ORDER BY pt.topping_name) AS standard_ingredients
+FROM pizza_recipes pr
+JOIN pizza_names pn ON pr.pizza_id = pn.pizza_id
+JOIN LATERAL unnest(string_to_array(pr.toppings, ',')) AS topping_id_str(tid) ON TRUE
+JOIN pizza_toppings pt ON pt.topping_id = CAST(topping_id_str.tid AS INTEGER)
+GROUP BY pn.pizza_name
+ORDER BY pn.pizza_name;
+```
 #### Steps:
 #### Solution:
+| pizza_name | standard_ingredients                                                  |
+| ---------- | --------------------------------------------------------------------- |
+| Meatlovers | BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami |
+| Vegetarian | Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes            |
 
-**Question 2: What was the msot commonly added extra?**
+**Question 2: What was the most commonly added extra?**
+
 #### Steps:
 #### Solution:
 
