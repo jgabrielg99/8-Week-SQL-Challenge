@@ -57,10 +57,6 @@ ORDER BY s.customer_id
 | 19          | pro monthly   | 2020-06-29 |
 | 19          | pro annual    | 2020-08-29 |
 
----
-
-[View on DB Fiddle](https://www.db-fiddle.com/f/rHJhRrXy5hbVBNJ6F6b9gJ/16)
-
 Customer 1: This customer started their `trial` period on August 1, 2020. At the end of their week-long trial, they decided to subscribe to the `basic monthly` plan.
 
 Customer 2: Following their `trial` which began on September 20, 2020, Customer 2 subscribed to the `pro annual` plan.
@@ -141,9 +137,6 @@ ORDER BY p.plan_id
 | 3       | pro annual    | 63    |
 | 4       | churn         | 71    |
 
----
-
-[View on DB Fiddle](https://www.db-fiddle.com/f/rHJhRrXy5hbVBNJ6F6b9gJ/16)
 
 **Question 4: What is the customer count and percentage of customers who have churned rounded to 1 decimal place?**
 ```sql
@@ -161,8 +154,37 @@ WHERE s.plan_id = 4 -- Churned plan_id is 4
 | 307           | 30.7          |
 
 **Question 5: How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?**
+```sql
+WITH plan_ranked AS (
+  SELECT 
+  	ROW_NUMBER() OVER(PARTITION BY s.customer_id
+                  ORDER BY s.start_date) AS rank,
+  	s.customer_id,
+  	p.plan_name
+  FROM subscriptions s
+  JOIN plans p
+  	ON s.plan_id = p.plan_id
+  )
+  
+SELECT 
+	COUNT(CASE
+          WHEN rank = 2 AND plan_name = 'churn' THEN 1
+          ELSE 0
+          END) AS churned_customers,
+    ROUND(100.0 * COUNT(CASE
+          WHEN rank = 2 AND plan_name = 'churn' THEN 1
+          ELSE 0
+          END) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 0) AS churn_perc
+FROM plan_ranked
+WHERE plan_name = 'churn'
+    AND rank = 2
+```
 #### Steps:
 #### Solution:
+| churned_customers | churn_perc |
+| ----------------- | ---------- |
+| 92                | 9          |
+
 
 **Question 6: What is the number and percentage of customer plans after their initial free trail?**
 #### Steps:
