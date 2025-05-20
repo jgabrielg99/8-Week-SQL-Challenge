@@ -81,6 +81,8 @@ SELECT
 FROM subscriptions
 ```
 #### Steps:
+* Use **COUNT DISTINCT** to count only each unique `customer_id`
+  
 #### Solution:
 | count |
 | ----- |
@@ -94,11 +96,16 @@ SELECT
 FROM subscriptions s
 JOIN plans p
 	ON s.plan_id = p.plan_id
-WHERE s.plan_id = 0 -- Trial plan_id is 0
+WHERE p.plan_name = 'trial'
 GROUP BY DATE_PART('month', start_date)
 ORDER BY month_date
 ```
 #### Steps:
+* The **DATE_PART** clause will extract each 'month' value from the `start_date` column
+* **COUNT** the number of `customer_id`
+* JOIN the `plans` table on the `subscriptions` table to be able to filter to only show results where the `plan_name` is 'trial'
+	* Alternatively, you could forego the join and filter by `plan_id` = 0 (demonstrated in question 4); however for scalability purposed, if there were a higher quantity of `plan_id` values, joining is the way to go 
+
 #### Solution:
 | month_date | customer_count |
 | ---------- | -------------- |
@@ -129,6 +136,9 @@ GROUP BY p.plan_name, p.plan_id
 ORDER BY p.plan_id
 ```
 #### Steps:
+* **COUNT** the number of `customer_id` values
+* Then filter to only return results where the `start_date` is greater than December 31, 2020
+ 
 #### Solution:
 | plan_id | plan_name     | count |
 | ------- | ------------- | ----- |
@@ -143,13 +153,18 @@ ORDER BY p.plan_id
 SELECT 
 	COUNT(s.customer_id) AS churned_count,
     ROUND(100.0 * COUNT(s.customer_id)/
-          (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 1) AS churn_percent
+          (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 1) AS churn_percentage
 FROM subscriptions s
 WHERE s.plan_id = 4 -- Churned plan_id is 4
 ```
 #### Steps:
+* Use **COUNT** to count the `customer_id` values
+* To find the percentage, divide the number of customers who have churned by the total number of customers. To do this, use a subquery in the denominator and the filtered results in the numerator
+* **ROUND** the percentage value to 1 decimal place
+* Filter the results to only return `plan_id` = 4 -- churned
+
 #### Solution:
-| churned_count | churn_percent |
+| churned_count | churn_percentage |
 | ------------- | ------------- |
 | 307           | 30.7          |
 
@@ -187,20 +202,108 @@ WHERE plan_name = 'churn'
 
 
 **Question 6: What is the number and percentage of customer plans after their initial free trail?**
+```sql
+WITH after_trial AS (
+  SELECT
+  	customer_id,
+  	plan_id,
+	LEAD(plan_id) OVER(PARTITION BY(customer_id) ORDER BY plan_id) as resub_plan_id
+  FROM subscriptions
+)
+
+SELECT
+	resub_plan_id,
+    COUNT(customer_id) AS plan_count,
+    ROUND(100.0 * COUNT(customer_id) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 1) AS plan_percentage
+FROM after_trial
+WHERE resub_plan_id IS NOT NULL
+	AND plan_id =0
+GROUP BY resub_plan_id
+ORDER BY resub_plan_id
+```
 #### Steps:
 #### Solution:
+| resub_plan_id | plan_count | plan_percentage |
+| ------------- | ---------- | --------------- |
+| 1             | 546        | 54.6            |
+| 2             | 325        | 32.5            |
+| 3             | 37         | 3.7             |
+| 4             | 92         | 9.2             |
 
 **Question 7: What is the customer count and percentage breakdown of all 5 `plan_name` values at `2020-12-31`**
+```sql
+WITH next_date AS (
+  SELECT 
+  	customer_id,
+  	plan_id,
+  	start_date,
+  	LEAD(start_date) OVER(PARTITION BY customer_id ORDER BY start_date) AS next_date
+  FROM subscriptions
+  WHERE start_date <= '2020-12-31'
+)
+
+SELECT 
+	plan_id,
+    COUNT(customer_id) AS plan_count,
+    ROUND(100.0 * COUNT(DISTINCT customer_id) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 1) AS plan_percentage
+FROM next_date
+WHERE next_date IS NULL
+GROUP BY plan_id
+ORDER BY plan_id
+```
 #### Steps:
 #### Solution:
+| plan_id | plan_count | plan_percentage |
+| ------- | ---------- | --------------- |
+| 0       | 19         | 1.9             |
+| 1       | 224        | 22.4            |
+| 2       | 326        | 32.6            |
+| 3       | 195        | 19.5            |
+| 4       | 236        | 23.6            |
 
 **Question 8: How many customers have upgraded to an annual plan in 2020?**
+```sql
+SELECT
+	COUNT(DISTINCT customer_id) AS annual_plans
+FROM subscriptions
+WHERE plan_id = 3
+	AND start_date <= '2020-12-31'
+```
 #### Steps:
 #### Solution:
+| annual_plans |
+| ------------ |
+| 195          |
+
 
 **Question 9: How many days on average does it take for a customer to upgrade to an annual plan from the day they join Foodie-Fi?**
+```sql
+WITH trial_date AS (
+  SELECT 
+  	customer_id, 
+  	start_date AS trial_date
+  FROM subscriptions
+  WHERE plan_id = 0
+  ),
+ annual_date AS (
+   SELECT
+   	customer_id,
+   	start_date AS annual_date
+   FROM subscriptions
+   WHERE plan_id = 3
+   )
+   
+SELECT 
+	ROUND(AVG(a.annual_date - t.trial_date), 0)  AS avg_upgrade_days
+FROM trial_date t
+JOIN annual_date a
+	ON t.customer_id = a.customer_id
+```
 #### Steps:
 #### Solution:
+| avg_upgrade_days |
+| ---------------- |
+| 105              |
 
 **Question 10: Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days, etc.)**
 #### Steps:
